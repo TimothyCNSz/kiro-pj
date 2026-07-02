@@ -1,0 +1,40 @@
+{
+  "name": "awsome-shop-server",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "AWSomeShop backend (Node + TS, single monolithic Lambda)",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest --run",
+    "test:watch": "vitest",
+    "build:backend": "node esbuild.config.mjs",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:migrate:deploy": "node dist/migrate.mjs",
+    "seed": "node dist/seed.mjs",
+    "seed:demo": "node dist/seed-demo.mjs"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.693.0",
+    "@aws-sdk/client-ses": "^3.693.0",
+    "@aws-sdk/s3-request-presigner": "^3.693.0",
+    "@codegenie/serverless-express": "^4.16.0",
+    "drizzle-orm": "^0.36.4",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.2",
+    "postgres": "^3.4.5"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/jsonwebtoken": "^9.0.7",
+    "@types/node": "^22.9.0",
+    "@types/supertest": "^6.0.2",
+    "drizzle-kit": "^0.28.1",
+    "esbuild": "^0.24.0",
+    "fast-check": "^3.23.1",
+    "supertest": "^7.0.0",
+    "typescript": "~5.7.2",
+    "vitest": "^2.1.5"
+  }
+}

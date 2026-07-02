@@ -1,0 +1,9 @@
+# CDK asset staging & synth output
+cdk.out/
+*.js
+!jest.config.js
+*.d.ts
+node_modules/
+
+# CDK context cache
+cdk.context.json

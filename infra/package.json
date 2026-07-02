@@ -1,0 +1,28 @@
+{
+  "name": "awsome-shop-infra",
+  "version": "0.0.1",
+  "private": true,
+  "description": "AWSomeShop 基础设施编排（AWS CDK / TypeScript）",
+  "bin": {
+    "awsome-shop-infra": "bin/awsome-shop.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc -w",
+    "typecheck": "tsc --noEmit",
+    "synth": "cdk synth",
+    "deploy": "cdk deploy --require-approval never",
+    "destroy": "cdk destroy",
+    "cdk": "cdk"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "aws-cdk": "^2.160.0",
+    "ts-node": "^10.9.2",
+    "typescript": "~5.7.2"
+  },
+  "dependencies": {
+    "aws-cdk-lib": "^2.160.0",
+    "constructs": "^10.3.0"
+  }
+}
