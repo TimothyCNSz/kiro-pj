@@ -16,14 +16,16 @@
 
 import { Router, type Request, type RequestHandler, type Response } from 'express'
 
-import { success, type ApiResponse } from '../lib/api'
+import { paginated, success, type ApiResponse } from '../lib/api'
 import { adminGuard, createAuthMiddleware } from '../middleware/auth'
 import { NOT_FOUND_CODE } from '../middleware/error-handler'
+import { OrderStatus, OrderType } from '../lib/domain'
 import {
   FulfillmentService,
   type ShipPhysicalResult,
   type ShipVirtualResult,
 } from '../services/fulfillment-service'
+import { AdminOrderService, type AdminOrderRow } from '../services/admin-order-service'
 
 /** 实物发货成功提示。 */
 export const SHIP_PHYSICAL_OK_MESSAGE = '实物订单已发货'
@@ -42,11 +44,41 @@ export interface FulfillmentCommandService {
   shipVirtual(adminId: string, orderId: string): Promise<ShipVirtualResult | null>
 }
 
+/** 管理端订单列表查询服务接口（供发货页展示与选择）。 */
+export interface AdminOrderQueryService {
+  listOrders(params: {
+    status?: OrderStatus
+    type?: OrderType
+    page: number
+    pageSize: number
+  }): Promise<{ list: AdminOrderRow[]; total: number; page: number; pageSize: number }>
+}
+
 /** `createAdminFulfillmentRouter` 依赖（全部可注入以支持无副作用测试）。 */
 export interface AdminFulfillmentRouterDependencies {
   fulfillmentService: FulfillmentCommandService
+  /** 订单列表查询服务（GET /admin/orders）。 */
+  orderQueryService: AdminOrderQueryService
   /** 认证中间件（挂在 adminGuard 之前）。 */
   authMiddleware: RequestHandler
+}
+
+/** 从查询串解析订单状态筛选（非法值忽略）。 */
+function parseStatus(v: unknown): OrderStatus | undefined {
+  return v === OrderStatus.PendingShipment || v === OrderStatus.Shipped
+    ? (v as OrderStatus)
+    : undefined
+}
+
+/** 从查询串解析订单类型筛选（非法值忽略）。 */
+function parseType(v: unknown): OrderType | undefined {
+  return v === OrderType.Physical || v === OrderType.Virtual ? (v as OrderType) : undefined
+}
+
+/** 从查询串解析分页（缺省 page=1、pageSize=20）。 */
+function parsePage(v: unknown, fallback: number): number {
+  const n = Number(v)
+  return Number.isFinite(n) && n >= 1 ? Math.floor(n) : fallback
 }
 
 /** 通用 404 信封（订单不存在，无对应领域错误码）。 */
@@ -69,6 +101,28 @@ const asyncHandler =
  */
 export function createAdminFulfillmentRouter(deps: AdminFulfillmentRouterDependencies): Router {
   const router = Router()
+
+  // 订单列表（需管理员）：支持按 status / type 筛选与分页，供发货页展示与选择。
+  router.get(
+    '/',
+    deps.authMiddleware,
+    adminGuard,
+    asyncHandler(async (req, res) => {
+      const result = await deps.orderQueryService.listOrders({
+        status: parseStatus(req.query.status),
+        type: parseType(req.query.type),
+        page: parsePage(req.query.page, 1),
+        pageSize: parsePage(req.query.pageSize, 20),
+      })
+      res.json(
+        paginated(result.list, {
+          total: result.total,
+          page: result.page,
+          pageSize: result.pageSize,
+        }),
+      )
+    }),
+  )
 
   // 实物发货（需求 8.2, 8.3, 14.1, 14.3）。
   router.post(
@@ -113,6 +167,7 @@ export function createAdminFulfillmentRouter(deps: AdminFulfillmentRouterDepende
 export function buildDefaultAdminFulfillmentRouter(): Router {
   return createAdminFulfillmentRouter({
     fulfillmentService: new FulfillmentService(),
+    orderQueryService: new AdminOrderService(),
     authMiddleware: createAuthMiddleware(),
   })
 }

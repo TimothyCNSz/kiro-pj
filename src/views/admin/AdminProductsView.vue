@@ -83,7 +83,7 @@
 
     <!-- 创建 / 编辑表单弹窗 -->
     <Teleport to="body">
-      <div v-if="formMode" class="modal-overlay" role="presentation" @click.self="closeForm">
+      <div v-if="formMode" class="modal-overlay">
         <div class="modal-card" role="dialog" aria-modal="true">
           <h2 class="modal-title">
             {{ formMode === 'create' ? t('admin.productCreate') : t('admin.productEdit') }}
@@ -156,7 +156,7 @@
 
     <!-- 图集 / CDK 管理弹窗 -->
     <Teleport to="body">
-      <div v-if="manageRow" class="modal-overlay" role="presentation" @click.self="closeManage">
+      <div v-if="manageRow" class="modal-overlay">
         <div class="modal-card modal-wide" role="dialog" aria-modal="true">
           <h2 class="modal-title">{{ manageRow.name }}</h2>
 

@@ -1,0 +1,32 @@
+# 本地开发用 PostgreSQL（仅用于本地验证，非生产）。
+#
+# 启动：  docker compose up -d
+# 停止：  docker compose down
+# 清空数据并重来： docker compose down -v
+#
+# 对应的连接串（写入项目根 .env 的 DATABASE_URL）：
+#   DATABASE_URL=postgres://app:app@localhost:5432/awsome_shop
+#
+# 端口 5432 映射到宿主机；数据持久化在命名卷 awsome-shop-pgdata。
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: awsome-shop-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+      POSTGRES_DB: awsome_shop
+    ports:
+      - "5432:5432"
+    volumes:
+      - awsome-shop-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d awsome_shop"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  awsome-shop-pgdata:

@@ -40,8 +40,9 @@ import { AccountStatus, ProductStatus, ProductType, Role } from '../lib/domain'
 import { hashPassword } from '../lib/password'
 import { cdks, pointsAccounts, productImages, products, users } from './schema'
 
-/** 占位图 CDN 基址（演示用，无需真实存在的对象）。 */
-const PLACEHOLDER_MEDIA_BASE = 'https://demo.example-company.com/media'
+// 本地演示图片基址：图片放在前端 public/ 目录，由 vite 直接托管（http://localhost:5173/demo/xxx.svg），
+// 无需 S3 与外网。URL 用相对路径（形如 /demo/xxx.svg），与部署域名无关。
+const DEMO_MEDIA_BASE = ''
 
 /** 演示商品定义。virtual 商品的 stock 语义 = 可用 CDK 数（见 schema 注释），故由 cdkCodes 数量决定。 */
 interface DemoProduct {
@@ -65,6 +66,8 @@ interface DemoEmployee {
   password: string
   /** 初始积分余额：给足以完成多次兑换演示。 */
   balance: number
+  /** 头像对象键（本地 public/ 下），为空则前端回退默认头像。 */
+  avatarKey?: string
 }
 
 /** 示例商品清单：实物 3 个 + 虚拟 3 个，均为上架状态。 */
@@ -75,7 +78,7 @@ const DEMO_PRODUCTS: readonly DemoProduct[] = [
     pointsCost: 800,
     type: ProductType.Physical,
     physicalStock: 25,
-    imageKeys: ['demo/keyboard-1.jpg', 'demo/keyboard-2.jpg'],
+    imageKeys: ['demo/keyboard.svg'],
   },
   {
     name: '演示品牌保温杯',
@@ -83,7 +86,7 @@ const DEMO_PRODUCTS: readonly DemoProduct[] = [
     pointsCost: 300,
     type: ProductType.Physical,
     physicalStock: 60,
-    imageKeys: ['demo/bottle-1.jpg'],
+    imageKeys: ['demo/bottle.svg'],
   },
   {
     name: '演示无线降噪耳机',
@@ -91,14 +94,14 @@ const DEMO_PRODUCTS: readonly DemoProduct[] = [
     pointsCost: 1200,
     type: ProductType.Physical,
     physicalStock: 10,
-    imageKeys: ['demo/headphone-1.jpg', 'demo/headphone-2.jpg'],
+    imageKeys: ['demo/headphone.svg'],
   },
   {
     name: '演示视频会员月卡',
     description: '演示用虚拟商品：主流视频平台会员月卡兑换码。',
     pointsCost: 200,
     type: ProductType.Virtual,
-    imageKeys: ['demo/video-card-1.jpg'],
+    imageKeys: ['demo/video.svg'],
     cdkCodes: [
       'DEMO-VIDEO-0001',
       'DEMO-VIDEO-0002',
@@ -112,7 +115,7 @@ const DEMO_PRODUCTS: readonly DemoProduct[] = [
     description: '演示用虚拟商品：云存储空间扩容兑换码。',
     pointsCost: 150,
     type: ProductType.Virtual,
-    imageKeys: ['demo/cloud-1.jpg', 'demo/cloud-2.jpg'],
+    imageKeys: ['demo/cloud.svg'],
     cdkCodes: ['DEMO-CLOUD-0001', 'DEMO-CLOUD-0002', 'DEMO-CLOUD-0003'],
   },
   {
@@ -120,15 +123,25 @@ const DEMO_PRODUCTS: readonly DemoProduct[] = [
     description: '演示用虚拟商品：连锁咖啡电子兑换券。',
     pointsCost: 100,
     type: ProductType.Virtual,
-    imageKeys: ['demo/coffee-1.jpg'],
+    imageKeys: ['demo/coffee.svg'],
     cdkCodes: ['DEMO-COFFEE-0001', 'DEMO-COFFEE-0002', 'DEMO-COFFEE-0003', 'DEMO-COFFEE-0004'],
   },
 ]
 
-/** 示例员工清单：2 个 active 账号，积分充足。 */
+/** 示例员工清单：2 个 active 账号，积分充足，各配一张本地演示头像。 */
 const DEMO_EMPLOYEES: readonly DemoEmployee[] = [
-  { email: 'demo.employee1@example-company.com', password: 'DemoPass!123', balance: 5000 },
-  { email: 'demo.employee2@example-company.com', password: 'DemoPass!456', balance: 3000 },
+  {
+    email: 'demo.employee1@example-company.com',
+    password: 'DemoPass!123',
+    balance: 5000,
+    avatarKey: 'demo/avatar1.svg',
+  },
+  {
+    email: 'demo.employee2@example-company.com',
+    password: 'DemoPass!456',
+    balance: 3000,
+    avatarKey: 'demo/avatar2.svg',
+  },
 ]
 
 type Db = PostgresJsDatabase<Record<string, never>>
@@ -153,7 +166,7 @@ async function ensureDemoProduct(db: Db, def: DemoProduct): Promise<string> {
   // 虚拟商品库存 = 可用 CDK 数（schema 注释：virtual 的 stock 为派生值）。
   const stock = isVirtual ? (def.cdkCodes?.length ?? 0) : (def.physicalStock ?? 0)
   const primaryKey = def.imageKeys[0]
-  const primaryUrl = `${PLACEHOLDER_MEDIA_BASE}/${primaryKey}`
+  const primaryUrl = `${DEMO_MEDIA_BASE}/${primaryKey}`
 
   let productId = existing[0]?.id
   if (!productId) {
@@ -177,7 +190,7 @@ async function ensureDemoProduct(db: Db, def: DemoProduct): Promise<string> {
       def.imageKeys.map((key, index) => ({
         productId: productId!,
         objectKey: key,
-        url: `${PLACEHOLDER_MEDIA_BASE}/${key}`,
+        url: `${DEMO_MEDIA_BASE}/${key}`,
         isPrimary: index === 0,
         sortOrder: index,
       })),
@@ -217,6 +230,7 @@ async function ensureDemoCdks(db: Db, productId: string, codes: readonly string[
  */
 async function ensureDemoEmployee(db: Db, def: DemoEmployee): Promise<void> {
   const passwordHash = hashPassword(def.password)
+  const avatarUrl = def.avatarKey ? `${DEMO_MEDIA_BASE}/${def.avatarKey}` : null
   const inserted = await db
     .insert(users)
     .values({
@@ -224,6 +238,7 @@ async function ensureDemoEmployee(db: Db, def: DemoEmployee): Promise<void> {
       passwordHash,
       role: Role.Employee,
       status: AccountStatus.Active,
+      avatarUrl,
     })
     .onConflictDoNothing({ target: users.email })
     .returning({ id: users.id })

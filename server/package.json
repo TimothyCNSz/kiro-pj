@@ -13,7 +13,12 @@
     "db:migrate": "drizzle-kit migrate",
     "db:migrate:deploy": "node dist/migrate.mjs",
     "seed": "node dist/seed.mjs",
-    "seed:demo": "node dist/seed-demo.mjs"
+    "seed:demo": "node dist/seed-demo.mjs",
+    "start:local": "node --env-file=../.env dist/local.cjs",
+    "dev": "node esbuild.config.mjs && node --env-file=../.env dist/local.cjs",
+    "db:migrate:local": "node --env-file=../.env dist/migrate.mjs",
+    "seed:local": "node --env-file=../.env dist/seed.mjs",
+    "seed:demo:local": "node --env-file=../.env dist/seed-demo.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.693.0",

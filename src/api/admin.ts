@@ -215,7 +215,41 @@ export interface ShipVirtualResult {
   cdks: string[]
 }
 
+export type OrderStatus = 'pending_shipment' | 'shipped'
+
+/** 管理端订单列表项（发货页展示） */
+export interface AdminOrderRow {
+  id: string
+  /** 下单员工邮箱 */
+  userEmail: string
+  type: ProductType
+  status: OrderStatus
+  pointsSpent: number
+  createdAt: string
+  items: Array<{ productName: string; quantity: number }>
+  /** 实物物流编号（已发货实物订单） */
+  trackingNo: string | null
+  /** 收货地址（实物订单） */
+  shippingAddress: { recipient?: string; phone?: string; detail?: string } | null
+  /** 已交付 CDK（已发货虚拟订单） */
+  cdks: string[]
+}
+
+export interface ListAdminOrdersParams {
+  /** 状态筛选：待发货 / 已发货；省略为全部 */
+  status?: OrderStatus
+  /** 类型筛选：实物 / 虚拟；省略为全部 */
+  type?: ProductType
+  page: number
+  pageSize: number
+}
+
 export const fulfillment = {
+  /** 分页返回订单列表（供发货页展示与选择，支持状态/类型筛选） */
+  list(params: ListAdminOrdersParams): Promise<PaginatedData<AdminOrderRow>> {
+    return requestData<PaginatedData<AdminOrderRow>>(http.get('/admin/orders', { params }))
+  },
+
   /** 上传物流编号（实物发货，非空校验） */
   shipPhysical(orderId: string, payload: ShipPhysicalRequest): Promise<ShipPhysicalResult> {
     return requestData<ShipPhysicalResult>(

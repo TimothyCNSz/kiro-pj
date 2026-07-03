@@ -4,16 +4,9 @@ import { useAuthStore } from '@/stores/auth'
 
 const routes: RouteRecordRaw[] = [
   {
+    // 落地页：重定向到商品浏览页（登录后进入商城，而非项目模板首页）。
     path: '/',
-    name: 'Home',
-    component: () => import('@/views/HomeView.vue'),
-    // 商品浏览页：需登录（需求 1.15）
-    meta: { requiresAuth: true },
-  },
-  {
-    path: '/about',
-    name: 'About',
-    component: () => import('@/views/AboutView.vue'),
+    redirect: { name: 'Catalog' },
   },
   {
     path: '/login',
@@ -37,29 +30,29 @@ const routes: RouteRecordRaw[] = [
     path: '/cart',
     name: 'Cart',
     component: () => import('@/views/shop/CartView.vue'),
-    // 购物车：需登录（需求 1.15、6.6）
-    meta: { requiresAuth: true },
+    // 购物车：需登录且仅员工（需求 1.15、6.6、3.1）
+    meta: { requiresAuth: true, requiresEmployee: true },
   },
   {
     path: '/profile',
     name: 'Profile',
     component: () => import('@/views/account/ProfileView.vue'),
-    // 个人资料页：需登录（需求 23、1.15）
-    meta: { requiresAuth: true },
+    // 个人资料页：需登录且仅员工（需求 23、1.15、3.1）
+    meta: { requiresAuth: true, requiresEmployee: true },
   },
   {
     // 商品浏览页：需登录（需求 4.1、1.15）
     path: '/catalog',
     name: 'Catalog',
     component: () => import('@/views/shop/CatalogView.vue'),
-    meta: { requiresAuth: true },
+    meta: { requiresAuth: true, requiresEmployee: true },
   },
   {
     // 商品详情页：需登录（需求 4.5）
     path: '/products/:id',
     name: 'ProductDetail',
     component: () => import('@/views/shop/ProductDetailView.vue'),
-    meta: { requiresAuth: true },
+    meta: { requiresAuth: true, requiresEmployee: true },
   },
   {
     // 兑换（结算）页：需登录（需求 7.1、7.2、1.15）。
@@ -67,28 +60,28 @@ const routes: RouteRecordRaw[] = [
     path: '/checkout',
     name: 'Checkout',
     component: () => import('@/views/shop/CheckoutView.vue'),
-    meta: { requiresAuth: true },
+    meta: { requiresAuth: true, requiresEmployee: true },
   },
   {
     // 积分余额页：需登录（需求 10.1、1.15）
     path: '/account/points',
     name: 'Points',
     component: () => import('@/views/account/PointsView.vue'),
-    meta: { requiresAuth: true },
+    meta: { requiresAuth: true, requiresEmployee: true },
   },
   {
     // 兑换历史页：需登录（需求 11.1–11.4、1.15）
     path: '/account/history',
     name: 'History',
     component: () => import('@/views/account/HistoryView.vue'),
-    meta: { requiresAuth: true },
+    meta: { requiresAuth: true, requiresEmployee: true },
   },
   {
     // 订单详情页：需登录（需求 8.3、9.3、9.4、1.15）
     path: '/account/orders/:id',
     name: 'OrderDetail',
     component: () => import('@/views/account/OrderDetailView.vue'),
-    meta: { requiresAuth: true },
+    meta: { requiresAuth: true, requiresEmployee: true },
   },
   {
     // 管理端·商品管理页：需登录且需管理员（需求 3.1–3.3、12.1–12.8）
@@ -155,13 +148,14 @@ router.beforeEach(async (to) => {
 
   const requiresAuth = to.matched.some((r) => r.meta.requiresAuth)
   const requiresAdmin = to.matched.some((r) => r.meta.requiresAdmin)
+  const requiresEmployee = to.matched.some((r) => r.meta.requiresEmployee)
 
-  // 已登录用户访问登录/注册页 → 回首页
+  // 已登录用户访问登录/注册页 → 按角色回各自主页
   if (auth.isAuthenticated && (to.name === 'Login' || to.name === 'Register')) {
-    return { name: 'Home' }
+    return { name: auth.isAdmin ? 'AdminProducts' : 'Catalog' }
   }
 
-  if (!requiresAuth && !requiresAdmin) {
+  if (!requiresAuth && !requiresAdmin && !requiresEmployee) {
     return true
   }
 
@@ -170,8 +164,8 @@ router.beforeEach(async (to) => {
     return { name: 'Login', query: { redirect: to.fullPath } }
   }
 
-  // 管理路由需要 role 信息；刷新后 role 可能为空，尝试水合
-  if (requiresAdmin && auth.role === null) {
+  // 受角色约束的路由需要 role 信息；刷新后 role 可能为空，尝试水合
+  if ((requiresAdmin || requiresEmployee) && auth.role === null) {
     try {
       await auth.fetchMe()
     } catch {
@@ -183,9 +177,15 @@ router.beforeEach(async (to) => {
     }
   }
 
-  // 非管理员访问管理页面 → 回首页/商品浏览页
+  // 非管理员访问管理页面 → 回商品浏览页（需求 3.1、3.3）
   if (requiresAdmin && !auth.isAdmin) {
-    return { name: 'Home' }
+    return { name: 'Catalog' }
+  }
+
+  // 管理员访问员工专属页面（浏览/购物车/兑换/账户）→ 回管理端（需求 3.2）。
+  // 管理员只做管理，不参与兑换，也没有购物车/账户内容。
+  if (requiresEmployee && auth.isAdmin) {
+    return { name: 'AdminProducts' }
   }
 
   return true

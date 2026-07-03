@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200" role="img" aria-label="演示员工头像2">
+  <rect width="200" height="200" fill="#6366f1"/>
+  <circle cx="100" cy="78" r="38" fill="#ffffff"/>
+  <path d="M40 176 a60 60 0 0 1 120 0 z" fill="#ffffff"/>
+  <text x="100" y="150" font-family="'Segoe UI',sans-serif" font-size="26" font-weight="700" fill="#4338ca" text-anchor="middle">E2</text>
+</svg>

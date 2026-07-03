@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400" role="img" aria-label="机械键盘">
+  <rect width="600" height="400" fill="#1f2d3d"/>
+  <rect x="60" y="150" width="480" height="150" rx="14" fill="#2c3e50" stroke="#42b983" stroke-width="4"/>
+  <g fill="#3a5068">
+    <rect x="84" y="176" width="40" height="34" rx="5"/><rect x="132" y="176" width="40" height="34" rx="5"/>
+    <rect x="180" y="176" width="40" height="34" rx="5"/><rect x="228" y="176" width="40" height="34" rx="5"/>
+    <rect x="276" y="176" width="40" height="34" rx="5"/><rect x="324" y="176" width="40" height="34" rx="5"/>
+    <rect x="372" y="176" width="40" height="34" rx="5"/><rect x="420" y="176" width="40" height="34" rx="5"/>
+    <rect x="468" y="176" width="40" height="34" rx="5"/>
+    <rect x="108" y="222" width="300" height="34" rx="5"/><rect x="420" y="222" width="88" height="34" rx="5"/>
+  </g>
+  <text x="300" y="96" font-family="'Segoe UI',sans-serif" font-size="40" font-weight="700" fill="#ffffff" text-anchor="middle">机械键盘</text>
+  <text x="300" y="352" font-family="'Segoe UI',sans-serif" font-size="20" fill="#8fa3b8" text-anchor="middle">演示商品图</text>
+</svg>

@@ -28,7 +28,8 @@ import { createAuthMiddleware } from '../middleware/auth'
 import { HttpError } from '../middleware/http-error'
 import { AuthService } from '../services/auth-service'
 import { EmailVerificationService } from '../services/email-verification-service'
-import { SesMailer } from '../services/ses-mailer'
+import { ConsoleMailer } from '../services/console-mailer'
+import { SesMailer, type Mailer } from '../services/ses-mailer'
 
 /** 提示文案（与设计「注册与邮箱验证流程」序列图一致）。 */
 export const REGISTER_OK_MESSAGE = '注册成功，请查收验证邮件完成验证'
@@ -212,11 +213,22 @@ export function createAuthRouter(deps: AuthRouterDependencies): Router {
 }
 
 /**
+ * 选择发信实现：默认走真实 SES（`SesMailer`）；当环境变量 `MAILER=console` 时
+ * 改用 `ConsoleMailer` 把验证邮件打印到控制台，用于本地开发（无 SES 凭证）。
+ */
+function resolveMailer(): Mailer {
+  if ((process.env.MAILER ?? '').toLowerCase() === 'console') {
+    return new ConsoleMailer()
+  }
+  return new SesMailer()
+}
+
+/**
  * 构造生产默认 `/auth` 路由：Drizzle 持久化 + SES 发信 + 基于 `JWT_SECRET` 的
  * 认证中间件。所有默认实现构造均无副作用（数据库/SES 连接惰性建立）。
  */
 export function buildDefaultAuthRouter(): Router {
-  const mailer = new SesMailer()
+  const mailer = resolveMailer()
   const emailVerificationService = new EmailVerificationService({
     mailer,
     verifyUrlBase: process.env.VERIFY_URL_BASE,

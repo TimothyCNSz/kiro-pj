@@ -9,6 +9,7 @@
 
 import express, { type Express } from 'express'
 import { registerRoutes } from './routes'
+import { createCorsMiddleware } from './middleware/cors'
 import { errorHandler, notFoundHandler } from './middleware/error-handler'
 
 /**
@@ -22,6 +23,10 @@ export const GLOBAL_PREFIX = process.env.API_PREFIX ?? '/api'
 export function createApp(): Express {
   const app = express()
   app.disable('x-powered-by')
+
+  // CORS（本地跨域直连开启；由 CORS_ALLOW_ORIGIN 环境变量控制，生产默认关闭）。
+  // 置于最前，保证预检 OPTIONS 与错误响应也带上 CORS 头。
+  app.use(createCorsMiddleware())
 
   // 解析 JSON 请求体（API Gateway 代理事件的 body 由适配器交给 Express）。
   app.use(express.json())

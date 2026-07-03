@@ -56,17 +56,31 @@ const seedDemoOptions = {
   outfile: 'dist/seed-demo.mjs',
 }
 
+// Local development HTTP server (本地验证用，非部署产物). Runs the same Express
+// app as a plain Node server instead of behind API Gateway/Lambda.
+// Built as CommonJS with a .cjs extension so Node treats it as CJS even though
+// package.json sets "type":"module" (Express relies on dynamic require, which
+// an ESM bundle cannot support).
+/** @type {import('esbuild').BuildOptions} */
+const localOptions = {
+  ...shared,
+  entryPoints: ['src/local.ts'],
+  outfile: 'dist/local.cjs',
+}
+
 if (isWatch) {
   const esbuild = await import('esbuild')
   const handlerCtx = await esbuild.context(handlerOptions)
   const migrateCtx = await esbuild.context(migrateOptions)
   const seedCtx = await esbuild.context(seedOptions)
   const seedDemoCtx = await esbuild.context(seedDemoOptions)
+  const localCtx = await esbuild.context(localOptions)
   await Promise.all([
     handlerCtx.watch(),
     migrateCtx.watch(),
     seedCtx.watch(),
     seedDemoCtx.watch(),
+    localCtx.watch(),
   ])
   console.log('esbuild: watching for changes...')
 } else {
@@ -75,8 +89,9 @@ if (isWatch) {
     build(migrateOptions),
     build(seedOptions),
     build(seedDemoOptions),
+    build(localOptions),
   ])
   console.log(
-    'esbuild: bundles written to dist/handler.js, dist/migrate.mjs, dist/seed.mjs and dist/seed-demo.mjs',
+    'esbuild: bundles written to dist/handler.js, dist/migrate.mjs, dist/seed.mjs, dist/seed-demo.mjs and dist/local.cjs',
   )
 }

@@ -1,17 +1,17 @@
 <template>
   <div class="cart-page">
-    <h1 class="cart-title">购物车</h1>
+    <h1 class="cart-title">{{ t('cart.title') }}</h1>
 
     <!-- 全局提示（如库存不足，需求 6.3） -->
     <p v-if="errorMessage" class="alert alert-error">{{ errorMessage }}</p>
 
     <!-- 加载态 -->
-    <p v-if="cart.loading && cart.isEmpty" class="hint">加载中…</p>
+    <p v-if="cart.loading && cart.isEmpty" class="hint">{{ t('common.loading') }}</p>
 
     <!-- 空购物车状态 -->
     <div v-else-if="cart.isEmpty" class="empty-state">
-      <p class="empty-text">购物车还是空的</p>
-      <RouterLink class="link" :to="{ name: 'Home' }">去挑选商品</RouterLink>
+      <p class="empty-text">{{ t('cart.empty') }}</p>
+      <RouterLink class="link" :to="{ name: 'Catalog' }">{{ t('cart.continueShopping') }}</RouterLink>
     </div>
 
     <!-- 购物车列表 -->
@@ -20,7 +20,9 @@
         <li v-for="item in cart.items" :key="item.productId" class="cart-item">
           <div class="item-main">
             <span class="item-name">{{ item.name }}</span>
-            <span class="item-unit">单价 {{ item.unitPoints }} 积分</span>
+            <span class="item-unit">
+              {{ t('cart.unitPrice') }} {{ t('catalog.pricePoints', { points: item.unitPoints }) }}
+            </span>
           </div>
 
           <!-- 数量调整（需求 6.2） -->
@@ -29,7 +31,7 @@
               type="button"
               class="qty-btn"
               :disabled="isBusy(item.productId) || item.quantity <= 1"
-              aria-label="减少数量"
+              :aria-label="t('cart.quantity')"
               @click="changeQty(item, item.quantity - 1)"
             >
               −
@@ -39,7 +41,7 @@
               type="button"
               class="qty-btn"
               :disabled="isBusy(item.productId)"
-              aria-label="增加数量"
+              :aria-label="t('cart.quantity')"
               @click="changeQty(item, item.quantity + 1)"
             >
               +
@@ -47,7 +49,7 @@
           </div>
 
           <!-- 小计（需求 6.5） -->
-          <span class="item-subtotal">{{ item.subtotal }} 积分</span>
+          <span class="item-subtotal">{{ t('catalog.pricePoints', { points: item.subtotal }) }}</span>
 
           <!-- 移除（需求 6.4） -->
           <button
@@ -56,19 +58,19 @@
             :disabled="isBusy(item.productId)"
             @click="remove(item)"
           >
-            移除
+            {{ t('cart.remove') }}
           </button>
         </li>
       </ul>
 
       <!-- 应付积分总额（需求 6.5） -->
       <div class="cart-summary">
-        <span class="summary-label">应付总额</span>
-        <span class="summary-total">{{ cart.totalPoints }} 积分</span>
+        <span class="summary-label">{{ t('cart.payable') }}</span>
+        <span class="summary-total">{{ t('catalog.pricePoints', { points: cart.totalPoints }) }}</span>
       </div>
 
       <div class="cart-actions">
-        <RouterLink class="btn-primary" :to="{ name: 'Checkout' }">去结算</RouterLink>
+        <RouterLink class="btn-primary" :to="{ name: 'Checkout' }">{{ t('cart.checkout') }}</RouterLink>
       </div>
     </template>
   </div>
@@ -77,10 +79,12 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useCartStore } from '@/stores/cart'
 import type { CartItem } from '@/api/cart'
 import { toApiError, isInsufficientStock } from '@/api/cart'
 
+const { t } = useI18n()
 const cart = useCartStore()
 
 const errorMessage = ref('')
@@ -102,9 +106,9 @@ function handleError(err: unknown): void {
   const apiErr = toApiError(err)
   if (isInsufficientStock(apiErr)) {
     // 超库存 / 零库存：提示库存不足并阻止以超库存数量结算（需求 6.3）
-    errorMessage.value = apiErr.message || '库存不足，请调整数量'
+    errorMessage.value = apiErr.message || t('errors.INSUFFICIENT_STOCK')
   } else {
-    errorMessage.value = apiErr.message || '操作失败，请稍后重试'
+    errorMessage.value = apiErr.message || t('errors.UNKNOWN')
   }
 }
 

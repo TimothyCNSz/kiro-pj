@@ -24,7 +24,7 @@
         </div>
         <div class="meta-row">
           <dt>{{ t('admin.productType') }}</dt>
-          <dd>{{ isPhysical ? t('shop.typePhysical') : t('shop.typeVirtual') }}</dd>
+          <dd>{{ isPhysical ? t('catalog.typePhysical') : t('catalog.typeVirtual') }}</dd>
         </div>
         <div class="meta-row">
           <dt>{{ t('account.orderTotal') }}</dt>

@@ -66,6 +66,32 @@
             <h2 class="desc-title">{{ t('catalog.description') }}</h2>
             <p class="desc-text">{{ product.description || t('common.empty') }}</p>
           </div>
+
+          <!-- 购买动作：加入购物车 / 立即兑换（需求 6.1、7.2；零库存禁用，需求 5.2；管理员不参与兑换，需求 3.2） -->
+          <div v-if="product.available && !auth.isAdmin" class="detail-actions">
+            <div class="qty">
+              <label class="qty-label" for="detail-qty">{{ t('cart.quantity') }}</label>
+              <input
+                id="detail-qty"
+                v-model.number="qty"
+                class="qty-input"
+                type="number"
+                min="1"
+                :max="product.stock"
+              />
+            </div>
+            <div class="action-buttons">
+              <button class="btn-primary" type="button" :disabled="adding" @click="addToCart">
+                {{ adding ? t('common.processing') : t('catalog.addToCart') }}
+              </button>
+              <button class="btn-redeem" type="button" @click="redeemNow">
+                {{ t('catalog.redeemNow') }}
+              </button>
+            </div>
+            <p v-if="actionMsg" class="action-msg">{{ actionMsg }}</p>
+            <p v-if="actionErr" class="action-err">{{ actionErr }}</p>
+          </div>
+          <p v-else-if="!product.available" class="detail-soldout">{{ t('catalog.outOfStock') }}</p>
         </section>
       </div>
     </article>
@@ -74,16 +100,63 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { RouterLink, useRoute } from 'vue-router'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useCatalogStore } from '@/stores/catalog'
+import { useCartStore } from '@/stores/cart'
+import { useAuthStore } from '@/stores/auth'
+import { toApiError } from '@/api/cart'
 import type { ProductImage } from '@/api/catalog'
 
 const { t } = useI18n()
 const route = useRoute()
+const router = useRouter()
 const store = useCatalogStore()
+const cart = useCartStore()
+const auth = useAuthStore()
 
 const product = computed(() => store.current)
+
+// 购买动作状态
+const qty = ref(1)
+const adding = ref(false)
+const actionMsg = ref('')
+const actionErr = ref('')
+
+/** 规整数量为 [1, stock] 内的整数 */
+function normalizedQty(): number {
+  const max = product.value?.stock ?? 1
+  let n = Math.floor(Number(qty.value))
+  if (!Number.isFinite(n) || n < 1) n = 1
+  if (max > 0 && n > max) n = max
+  qty.value = n
+  return n
+}
+
+/** 加入购物车（需求 6.1） */
+async function addToCart(): Promise<void> {
+  if (!product.value) return
+  actionMsg.value = ''
+  actionErr.value = ''
+  adding.value = true
+  try {
+    await cart.addItem(product.value.id, normalizedQty())
+    actionMsg.value = t('cart.updated')
+  } catch (err) {
+    actionErr.value = toApiError(err).message || t('errors.UNKNOWN')
+  } finally {
+    adding.value = false
+  }
+}
+
+/** 立即兑换：跳转结算页（携带 productId 与数量，需求 7.2） */
+function redeemNow(): void {
+  if (!product.value) return
+  router.push({
+    name: 'Checkout',
+    query: { productId: product.value.id, quantity: String(normalizedQty()) },
+  })
+}
 
 /** 图集：主图优先，其余按 sortOrder 排序（需求 4.5） */
 const galleryImages = computed<ProductImage[]>(() => {
@@ -266,6 +339,81 @@ watch(
   color: #555;
   line-height: 1.6;
   white-space: pre-wrap;
+}
+
+.detail-actions {
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid #eee;
+}
+
+.qty {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+}
+
+.qty-label {
+  font-size: 0.9rem;
+  color: #55606a;
+}
+
+.qty-input {
+  width: 88px;
+  padding: 0.45rem 0.6rem;
+  font-size: 0.95rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.btn-primary,
+.btn-redeem {
+  padding: 0.6rem 1.4rem;
+  font-size: 0.95rem;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.btn-primary {
+  background: #42b983;
+  color: #fff;
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-redeem {
+  background: #e67e22;
+  color: #fff;
+}
+
+.action-msg {
+  margin: 0.75rem 0 0;
+  color: #1b5e20;
+  font-size: 0.9rem;
+}
+
+.action-err {
+  margin: 0.75rem 0 0;
+  color: #b71c1c;
+  font-size: 0.9rem;
+}
+
+.detail-soldout {
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid #eee;
+  color: #b71c1c;
+  font-weight: 600;
 }
 
 .state-hint {

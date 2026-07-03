@@ -5,8 +5,6 @@
       <div
         v-if="visible"
         class="confirm-overlay"
-        role="presentation"
-        @click.self="onCancel"
       >
         <div
           class="confirm-dialog"

@@ -154,6 +154,14 @@ const addressFormRef = ref<InstanceType<typeof AddressForm> | null>(null)
 
 /** 是否必须填写地址：本地检测到实物商品，或后端要求 */
 const requireAddress = computed(() => hasPhysical.value || addressRequiredByServer.value)
+
+/** 地址三项是否都已填写（用于购物车模式下即便非强制也随请求发送） */
+const isAddressComplete = computed(
+  () =>
+    address.value.recipient.trim().length > 0 &&
+    address.value.phone.trim().length > 0 &&
+    address.value.detail.trim().length > 0,
+)
 /** 是否展示地址表单：必填时展示；未知类型（购物车）也展示为可选，便于按需填写 */
 const showAddress = computed(() => requireAddress.value || mode.value === 'cart')
 
@@ -242,7 +250,10 @@ async function onConfirm(): Promise<void> {
   submitting.value = true
   errorMessage.value = ''
   try {
-    const payloadAddress = requireAddress.value ? address.value : undefined
+    // 必填时发送地址；购物车模式下即便非强制，只要填全也一并发送
+    // （购物车拿不到商品类型，若含实物但不发地址会被后端以 ADDRESS_REQUIRED 拒绝）。
+    const payloadAddress =
+      requireAddress.value || isAddressComplete.value ? address.value : undefined
     if (mode.value === 'instant') {
       await redemptionApi.instant(instantProductId.value, instantQuantity.value, payloadAddress)
     } else {

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400" role="img" aria-label="保温杯">
+  <rect width="600" height="400" fill="#0f3d3e"/>
+  <rect x="256" y="70" width="88" height="40" rx="8" fill="#7fd1c9"/>
+  <rect x="244" y="104" width="112" height="230" rx="26" fill="#14b8a6" stroke="#c9f2ec" stroke-width="4"/>
+  <rect x="244" y="180" width="112" height="60" fill="#0fa392"/>
+  <text x="300" y="216" font-family="'Segoe UI',sans-serif" font-size="18" font-weight="700" fill="#eafffb" text-anchor="middle">AWSome</text>
+  <text x="300" y="372" font-family="'Segoe UI',sans-serif" font-size="24" font-weight="700" fill="#ffffff" text-anchor="middle">品牌保温杯</text>
+</svg>
